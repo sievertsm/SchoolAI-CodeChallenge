@@ -16,7 +16,7 @@ This project utilized the [SciQ](https://huggingface.co/datasets/sciq) dataset f
 
 A subset of 1000 entries of this dataset was used in the RAG framework. The `support` feature was not present in every entry in the dataset, so the entries which did not have the `support` feature were removed prior to sampling. Also, the `support` feature was cleaned by attempting to remove all links. 
 
-![image]("data/word-count-distribution.png")
+![image]("./data/word-count-distribution.png")
 
 ### 2. Document Embedding
 
