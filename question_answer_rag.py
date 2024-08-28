@@ -4,10 +4,53 @@ import numpy as np
 import pandas as pd
 import faiss
 import re
+import spacy
 from kneed import KneeLocator
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from groq import Groq
+
+# Load English tokenizer, tagger, parser and NER
+nlp = spacy.load("en_core_web_sm")
+
+def remove_links(text):
+    """
+    """
+    # remove links
+    # # https://stackoverflow.com/questions/11331982/how-to-remove-any-url-within-a-string-in-python
+    text = re.sub(r"http\S+", "", text)
+
+    return text
+    
+
+def clean_text(text):
+    """
+    """
+    # https://spacy.io/
+    # https://stackoverflow.com/questions/45605946/how-to-do-text-pre-processing-using-spacy
+    
+    # lowercase the text
+    text = text.lower()
+
+    text = remove_links(text)
+
+    # remove special characters (not letter, number or space)
+    text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
+            
+    # apply the SpaCy tokenizer, tagger, parser and NER
+    doc = nlp(text)
+    
+    # lemmatize, remove stopwords and punctuation, and strip extra spaces
+    cleaned_tokens = [
+        token.lemma_ for token in doc 
+        if not token.is_stop and not token.is_punct and token.lemma_.strip()
+    ]
+    
+    # reconstruct the cleaned text from list
+    cleaned_text = " ".join(cleaned_tokens)
+    
+    return cleaned_text
+    
 
 class QuestionAnswerRAG:
     
@@ -21,6 +64,7 @@ class QuestionAnswerRAG:
         self.model_embed = SentenceTransformer(embedding_model)
         self.top_k = top_k
         self.source_text = None
+        self.source_text_tokens = None
         self.index = None
         self.nfeatures_embedding = None
 
@@ -31,7 +75,7 @@ class QuestionAnswerRAG:
         return self.model_embed.encode(text)
 
 
-    def create_vector_database(self, text_list):
+    def create_vector_database(self, text_list, text_list_tokens=[]):
         """
         A FAISS vector database is created using the input 'text_list.' The vector database uses
         normalized embeddings and inner products to return cosine similarity during search.
@@ -40,8 +84,18 @@ class QuestionAnswerRAG:
         # convert text_list to np.array for ease of indexing
         self.source_text = np.array(text_list)
 
+        # add tokenized text 
+        # tokenize text if none was passed
+        if len(text_list_tokens) == 0:
+            # https://stackoverflow.com/questions/35215161/most-efficient-way-to-map-function-over-numpy-array
+            self.source_text_tokens = np.array(list(map(clean_text, self.source_text)))
+        else:
+            assert len(text_list) == len(text_list_tokens), "length of 'text_list' must equal 'text_list_tokens'"
+            self.source_text_tokens = np.array(text_list_tokens)
+
         # get the text embeddings 
-        embeddings_faiss = self.embed_text(text_list)
+        # embeddings_faiss = self.embed_text(text_list)
+        embeddings_faiss = self.embed_text(self.source_text_tokens)
 
         # store the number of features in the embedding 
         self.nfeatures_embedding = embeddings_faiss.shape[1]
@@ -60,8 +114,12 @@ class QuestionAnswerRAG:
         Returns the top-k entries from the vector database that match the input text
         """
 
+        # toeknize text
+        # text_token = clean_text(text)
+
         # embedd the text
         vector = self.embed_text(text)
+        # vector = self.embed_text(text_token)
 
         # reshape the text to have the dimensions (N, num_features)
         if len(vector.shape) == 1:
@@ -155,7 +213,7 @@ class QuestionAnswerRAG:
             prompt_text += f"Rank {i+1} Document: {s}\n---\n"
 
         # remove the final new line
-        prompt_text = prompt_text[:-2]
+        prompt_text = prompt_text[:-1]
     
         return prompt_text
 
@@ -193,4 +251,4 @@ class QuestionAnswerRAG:
         msg = completion.choices[0].message
         answer = msg.content
 
-        return answer
+        return answer, rag_prompt
