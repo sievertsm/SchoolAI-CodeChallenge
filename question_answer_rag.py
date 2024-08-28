@@ -15,6 +15,7 @@ nlp = spacy.load("en_core_web_sm")
 
 def remove_links(text):
     """
+    Removes links in text
     """
     # remove links
     # # https://stackoverflow.com/questions/11331982/how-to-remove-any-url-within-a-string-in-python
@@ -25,6 +26,7 @@ def remove_links(text):
 
 def clean_text(text):
     """
+    Cleans and tokenizes text using spacy
     """
     # https://spacy.io/
     # https://stackoverflow.com/questions/45605946/how-to-do-text-pre-processing-using-spacy
@@ -50,6 +52,43 @@ def clean_text(text):
     cleaned_text = " ".join(cleaned_tokens)
     
     return cleaned_text
+
+
+def get_sampled_data():
+
+    # load the "sciq" dataset from Hugging Face
+    ds = load_dataset("allenai/sciq") # load the dataset
+    ds_train = ds["train"] # subset the training set
+    
+    # create dataframe for data manipulation
+    df = pd.DataFrame(ds_train)
+
+    # remove links from data
+    df["support-clean"] = df["support"].apply(remove_links)
+    
+    # investigate word count (split on whitespace)
+    df["word_count"] = df["support-clean"].apply(lambda x: len(x.split()))
+
+    # filter out rows with too few words
+    min_word_count=5
+    df_filt = df[df["word_count"]>=min_word_count].copy().reset_index() # original index will be stored as a feature
+
+    # select a subset of 1000 documents from the dataset
+
+    # set number of samples to be selected
+    n_samples=1000
+    
+    # set random seed for reproducibility
+    np.random.seed(147)
+    # get a set of random indicies to subset the data
+    idx_sample = np.random.choice(len(df_filt), size=n_samples, replace=False)
+    
+    # subset the dataset
+    df_train_sample = df_filt.iloc[idx_sample, :].reset_index(drop=True)
+    
+    print(f"Total samples in subset: {len(df_train_sample)}")
+
+    return df_train_sample
     
 
 class QuestionAnswerRAG:
@@ -204,7 +243,7 @@ class QuestionAnswerRAG:
         # remove the final new line
         prompt_text = prompt_text[:-1]
     
-        return prompt_text
+        return prompt_text, source_material
 
 
     def question_answer_rag(self, question):
@@ -213,7 +252,7 @@ class QuestionAnswerRAG:
         """
         
         # gets the RAG prompt based on the question
-        rag_prompt = self.construct_rag_prompt(question)
+        rag_prompt, documents = self.construct_rag_prompt(question)
 
         # sets up the Groq client
         groq_api = "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"
@@ -240,4 +279,4 @@ class QuestionAnswerRAG:
         msg = completion.choices[0].message
         answer = msg.content
 
-        return answer, rag_prompt
+        return answer, documents
