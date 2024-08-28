@@ -5,8 +5,12 @@ import gradio as gr
 import numpy as np
 import pandas as pd
 
-with open("key/groq-key.txt") as fl:
-    GROQ_API_KEY = fl.read()
+from dotenv import load_dotenv
+import os
+
+# get groq api key from .env
+load_dotenv()
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 
 def main():

@@ -34,17 +34,17 @@ A Gradio interface was used to interact with the RAG framework.
 
 ## Instructions for Use
 
-### Environment
-First an environment must be set up to run the code, which can be completed by following similar commands as these:
+### Virtual Environment
+First a virtual environment must be set up to run the code, which can be completed by following similar commands as these:
 
 Create a virtual environment
 ```
-python -m venv .env
+python -m venv .venv
 ```
 
 Activate the environment
 ```
-source .env/bin/activate
+source .venv/bin/activate
 ```
 
 Install the required packages
@@ -56,6 +56,25 @@ Install the SpaCy English resources
 ```
 python -m spacy download en_core_web_sm
 ```
+
+### Environment with Groq API Key
+This program requires an API Key from Groq to interface with the Llama model. 
+
+First generate an API key from [Groq](https://groq.com/). 
+
+Store this key in a .env file. This can be done with these commands
+
+First, create and open the .env file
+```
+nano .env
+```
+
+Add the Groq API key
+```
+GROQ_API_KEY=XXXXXXXXXXXXXXXX
+```
+
+Save and close the file with CTRL+O
 
 ### RAG System
 The RAG system can be run in the configured environment with the command
