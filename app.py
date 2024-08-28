@@ -5,6 +5,9 @@ import gradio as gr
 import numpy as np
 import pandas as pd
 
+with open("key/groq-key.txt") as fl:
+    GROQ_API_KEY = fl.read()
+
 
 def main():
 
@@ -15,7 +18,7 @@ def main():
     support_feat = df_train_sample["support-clean"].values
     
     # instantiate the QuestionAnswerRAG class
-    rag = QuestionAnswerRAG()
+    rag = QuestionAnswerRAG(GROQ_API_KEY=GROQ_API_KEY)
     # create vector database
     rag.create_vector_database(support_feat)
     

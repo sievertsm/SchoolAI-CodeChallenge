@@ -55,6 +55,9 @@ def clean_text(text):
 
 
 def get_sampled_data():
+    """
+    Downloads, cleans, and samples the data for use in the gradio app
+    """
 
     # load the "sciq" dataset from Hugging Face
     ds = load_dataset("allenai/sciq") # load the dataset
@@ -98,12 +101,16 @@ class QuestionAnswerRAG:
     def __init__(
         self, 
         embedding_model = "sentence-transformers/all-MiniLM-L6-v2",
-        top_k = 10
+        top_k = 10,
+        GROQ_API_KEY = None
     ):
     
         # instantiate embedding model
         self.model_embed = SentenceTransformer(embedding_model)
+
+        # initialize other parameters
         self.top_k = top_k
+        self.GROQ_API_KEY = GROQ_API_KEY
         self.source_text = None
         self.index = None
         self.nfeatures_embedding = None
@@ -257,8 +264,7 @@ class QuestionAnswerRAG:
         rag_prompt, documents = self.construct_rag_prompt(question)
 
         # sets up the Groq client
-        groq_api = "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"
-        client = Groq(api_key=groq_api)
+        client = Groq(api_key=self.GROQ_API_KEY)
 
         # gets an answer to the question using a llama3 model
         completion = client.chat.completions.create(
