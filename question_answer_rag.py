@@ -92,7 +92,9 @@ def get_sampled_data():
     
 
 class QuestionAnswerRAG:
-    
+    """
+    This class implementes the RAG question answer framework
+    """
     def __init__(
         self, 
         embedding_model = "sentence-transformers/all-MiniLM-L6-v2",
@@ -280,3 +282,22 @@ class QuestionAnswerRAG:
         answer = msg.content
 
         return answer, documents
+
+
+class RelevanceScore:
+    """
+    This class is for computing a relevance score based on cosine similarity
+    """
+    def __init__(self, model_name='sentence-transformers/all-MiniLM-L6-v2'):
+        self.model = SentenceTransformer(model_name)
+
+    def score(self, text_src, text_gen):
+        """
+        """
+
+        embed_src = self.model.encode(text_src)
+        embed_gen = self.model.encode(text_gen)
+
+        similarity = cosine_similarity(embed_src.reshape(1, -1), embed_gen.reshape(1, -1))
+
+        return similarity[0][0]
