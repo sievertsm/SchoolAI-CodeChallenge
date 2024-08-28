@@ -64,7 +64,6 @@ class QuestionAnswerRAG:
         self.model_embed = SentenceTransformer(embedding_model)
         self.top_k = top_k
         self.source_text = None
-        self.source_text_tokens = None
         self.index = None
         self.nfeatures_embedding = None
 
@@ -75,7 +74,7 @@ class QuestionAnswerRAG:
         return self.model_embed.encode(text)
 
 
-    def create_vector_database(self, text_list, text_list_tokens=[]):
+    def create_vector_database(self, text_list):
         """
         A FAISS vector database is created using the input 'text_list.' The vector database uses
         normalized embeddings and inner products to return cosine similarity during search.
@@ -84,18 +83,8 @@ class QuestionAnswerRAG:
         # convert text_list to np.array for ease of indexing
         self.source_text = np.array(text_list)
 
-        # add tokenized text 
-        # tokenize text if none was passed
-        if len(text_list_tokens) == 0:
-            # https://stackoverflow.com/questions/35215161/most-efficient-way-to-map-function-over-numpy-array
-            self.source_text_tokens = np.array(list(map(clean_text, self.source_text)))
-        else:
-            assert len(text_list) == len(text_list_tokens), "length of 'text_list' must equal 'text_list_tokens'"
-            self.source_text_tokens = np.array(text_list_tokens)
-
         # get the text embeddings 
-        # embeddings_faiss = self.embed_text(text_list)
-        embeddings_faiss = self.embed_text(self.source_text_tokens)
+        embeddings_faiss = self.embed_text(text_list)
 
         # store the number of features in the embedding 
         self.nfeatures_embedding = embeddings_faiss.shape[1]
@@ -114,12 +103,8 @@ class QuestionAnswerRAG:
         Returns the top-k entries from the vector database that match the input text
         """
 
-        # toeknize text
-        # text_token = clean_text(text)
-
         # embedd the text
         vector = self.embed_text(text)
-        # vector = self.embed_text(text_token)
 
         # reshape the text to have the dimensions (N, num_features)
         if len(vector.shape) == 1:
@@ -154,13 +139,17 @@ class QuestionAnswerRAG:
     
         return similarities_th, indicies_th
 
-    def reranking_tfidf(self, query_text, source_material):
+    def reranking_tfidf(self, query_text, source_material, tokenize=True):
         """
         Re-ranks the retrieved documents using term frequency inverse document frequency (tfidf)
         """
 
         # concatenates the query with the source material
         t = np.concatenate([np.array([query_text]), source_material])
+
+        if tokenize:
+            # tokenize input
+            t = np.array(list(map(clean_text, t)))
 
         # instantiates the TfidfVectorizer
         tfidfvectorizer = TfidfVectorizer()
